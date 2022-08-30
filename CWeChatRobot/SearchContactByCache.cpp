@@ -5,51 +5,32 @@ struct GetUserInfoStruct {
 	DWORD length;
 };
 
-VOID DeleteUserInfoCache() {
-	if (!hProcess)
-		return;
-	DWORD dwId = 0;
-	DWORD DeleteUserInfoCacheProcAddr = GetWeChatRobotBase() + DeleteUserInfoCacheOffset;
-	HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)DeleteUserInfoCacheProcAddr, NULL, 0, &dwId);
-	if (hThread) {
-		WaitForSingleObject(hThread, INFINITE);
-		CloseHandle(hThread);
-	}
-}
-
-std::wstring GetWxUserInfo(wchar_t* wxid) {
-	if (!hProcess)
+std::wstring GetWxUserInfo(DWORD pid,wchar_t* wxid) {
+	DWORD dwReadSize = 0;
+	wstring info = L"";
+	WeChatProcess hp(pid);
+	if (!hp.m_init) return L"{}";
+	DWORD GetWxUserInfoRemoteAddr = hp.GetProcAddr(GetWxUserInfoRemote);
+	DWORD DeleteUserInfoCacheProcAddr = hp.GetProcAddr(DeleteUserInfoCacheRemote);
+	if (GetWxUserInfoRemoteAddr == 0)
 		return L"{}";
-	wstring WString = L"";
-	DWORD GetUserInfoProcAddr = GetWeChatRobotBase() + GetWxUserInfoOffset;
-	LPVOID wxidaddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-	DWORD dwWriteSize = 0;
-	DWORD dwId = 0;
-	DWORD dwHandle = 0;
+	WeChatData<wchar_t*> r_wxid(hp.GetHandle(), wxid, TEXTLENGTH(wxid));
+	if (r_wxid.GetAddr() == 0)
+		return L"{}";
+	DWORD ret = CallRemoteFunction(hp.GetHandle(), GetWxUserInfoRemoteAddr, r_wxid.GetAddr());
+	if (ret == 0)
+		return L"{}";
 	GetUserInfoStruct userinfo = { 0 };
-	if (!wxidaddr)
-		return L"{}";
-	WriteProcessMemory(hProcess, wxidaddr, wxid, wcslen(wxid) * 2 + 2, &dwWriteSize);
-	HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetUserInfoProcAddr, wxidaddr, 0, &dwId);
-	if (hThread) {
-		WaitForSingleObject(hThread, INFINITE);
-		GetExitCodeThread(hThread, &dwHandle);
-		CloseHandle(hThread);
-	}
-
-	if(dwHandle)
-		ReadProcessMemory(hProcess, (LPCVOID)dwHandle, &userinfo, sizeof(GetUserInfoStruct), &dwWriteSize);
+	ReadProcessMemory(hp.GetHandle(), (LPVOID)ret, &userinfo, sizeof(GetUserInfoStruct), &dwReadSize);
 	if (userinfo.length) {
 		wchar_t* wmessage = new wchar_t[userinfo.length + 1];
 		ZeroMemory(wmessage, (userinfo.length + 1) * 2);
-		ReadProcessMemory(hProcess, (LPCVOID)userinfo.message, wmessage, userinfo.length * 2, &dwWriteSize);
-		WString += wmessage;
+		ReadProcessMemory(hp.GetHandle(), (LPVOID)userinfo.message, wmessage, userinfo.length * 2, &dwReadSize);
+		info = (wstring)wmessage;
 		delete[] wmessage;
 		wmessage = NULL;
 	}
-
-	VirtualFreeEx(hProcess, wxidaddr, 0, MEM_RELEASE);
-	DeleteUserInfoCache();
-	return WString;
+	CallRemoteFunction(hp.GetHandle(), DeleteUserInfoCacheProcAddr, NULL);
+	return info;
 }
 

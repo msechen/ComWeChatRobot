@@ -1,35 +1,23 @@
 #include "pch.h"
 
-BOOL HookVoiceMsg(wchar_t* savepath) {
-    if (!hProcess)
+BOOL HookVoiceMsg(DWORD pid,wchar_t* savepath) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD HookVoiceMsgRemoteAddr = hp.GetProcAddr(HookVoiceMsgRemote);
+    if (HookVoiceMsgRemoteAddr == 0)
         return 1;
-    DWORD WeChatRobotBase = GetWeChatRobotBase();
-    DWORD dwId = 0;
-    DWORD dwRet = 0x0;
-    LPVOID savepathaddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-    DWORD dwWriteSize = 0;
-    if (!savepathaddr)
+    WeChatData<wchar_t*> r_savepath(hp.GetHandle(), savepath, TEXTLENGTH(savepath));
+    if (r_savepath.GetAddr() == 0)
         return 1;
-    WriteProcessMemory(hProcess, savepathaddr, savepath, wcslen(savepath) * 2 + 2, &dwWriteSize);
-    DWORD HookVoiceMsgRemoteAddr = WeChatRobotBase + HookVoiceMsgRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)HookVoiceMsgRemoteAddr, savepathaddr, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-        GetExitCodeThread(hThread, &dwRet);
-        CloseHandle(hThread);
-    }
-    VirtualFreeEx(hProcess, savepathaddr, 0, MEM_RELEASE);
-    return dwRet == 0;
+    DWORD ret = CallRemoteFunction(hp.GetHandle(), HookVoiceMsgRemoteAddr, r_savepath.GetAddr());
+    return ret == 0;
 }
 
-void UnHookVoiceMsg() {
-    if (!hProcess)
+void UnHookVoiceMsg(DWORD pid) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return;
+    DWORD UnHookVoiceMsgRemoteAddr = hp.GetProcAddr(UnHookVoiceMsgRemote);
+    if (UnHookVoiceMsgRemoteAddr == 0)
         return;
-    DWORD dwId = 0x0;
-    DWORD UnHookVoiceMsgRemoteAddr = GetWeChatRobotBase() + UnHookVoiceMsgRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)UnHookVoiceMsgRemoteAddr, NULL, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-        CloseHandle(hThread);
-    }
+    CallRemoteFunction(hp.GetHandle(), UnHookVoiceMsgRemoteAddr, NULL);
 }

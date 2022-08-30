@@ -1,35 +1,23 @@
 #include "pch.h"
 
-BOOL HookImageMsg(wchar_t* savepath) {
-    if (!hProcess)
+BOOL HookImageMsg(DWORD pid,wchar_t* savepath) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD HookImageMsgRemoteAddr = hp.GetProcAddr(HookImageMsgRemote);
+    if (HookImageMsgRemoteAddr == 0)
         return 1;
-    DWORD WeChatRobotBase = GetWeChatRobotBase();
-    DWORD dwId = 0;
-    DWORD dwRet = 0x0;
-    LPVOID savepathaddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-    DWORD dwWriteSize = 0;
-    if (!savepathaddr)
+    WeChatData<wchar_t*> r_savepath(hp.GetHandle(), savepath, TEXTLENGTH(savepath));
+    if (r_savepath.GetAddr() == 0)
         return 1;
-    WriteProcessMemory(hProcess, savepathaddr, savepath, wcslen(savepath) * 2 + 2, &dwWriteSize);
-    DWORD HookImageMsgRemoteAddr = WeChatRobotBase + HookImageMsgRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)HookImageMsgRemoteAddr, savepathaddr, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-        GetExitCodeThread(hThread, &dwRet);
-        CloseHandle(hThread);
-    }
-    VirtualFreeEx(hProcess, savepathaddr, 0, MEM_RELEASE);
-    return dwRet == 0;
+    DWORD ret = CallRemoteFunction(hp.GetHandle(), HookImageMsgRemoteAddr, r_savepath.GetAddr());
+    return ret == 0;
 }
 
-void UnHookImageMsg() {
-    if (!hProcess)
+void UnHookImageMsg(DWORD pid) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return;
+    DWORD UnHookImageMsgRemoteAddr = hp.GetProcAddr(UnHookImageMsgRemote);
+    if (UnHookImageMsgRemoteAddr == 0)
         return;
-    DWORD dwId = 0x0;
-    DWORD UnHookImageMsgRemoteAddr = GetWeChatRobotBase() + UnHookImageMsgRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)UnHookImageMsgRemoteAddr, NULL, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-        CloseHandle(hThread);
-    }
+    CallRemoteFunction(hp.GetHandle(), UnHookImageMsgRemoteAddr, NULL);
 }

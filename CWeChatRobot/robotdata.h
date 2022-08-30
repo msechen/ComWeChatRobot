@@ -20,100 +20,65 @@
 #include "wechatver.h"
 #include "DeleteUser.h"
 #include "SendAppMsg.h"
+#include "EditRemark.h"
+#include "SetChatRoomName.h"
+#include "SetChatRoomAnnouncement.h"
+#include "SetChatRoomSelfNickname.h"
+#include "GetChatRoomMemberNickname.h"
+#include "DelChatRoomMember.h"
+#include "AddChatRoomMember.h"
 
-extern HANDLE hProcess;
-extern DWORD SendImageOffset;
-extern DWORD SendTextOffset;
-extern DWORD SendFileOffset;
-extern DWORD SendArticleOffset;
-extern DWORD SendCardOffset;
-extern DWORD SendAtTextOffset;
-extern DWORD SendAppMsgRemoteOffset;
+#define DLLNAME L"DWeChatRobot.dll"
 
-extern DWORD GetFriendListInitOffset;
-extern DWORD GetFriendListRemoteOffset;
-extern DWORD GetFriendListFinishOffset;
+#define SendTextRemote "SendTextRemote"
+#define SendImageRemote "SendImageRemote"
+#define SendFileRemote "SendFileRemote"
+#define SendArticleRemote "SendArticleRemote"
+#define SendCardRemote "SendCardRemote"
+#define SendAtTextRemote "SendAtTextRemote"
+#define SendAppMsgRemote "SendAppMsgRemote"
 
-extern DWORD GetWxUserInfoOffset;
-extern DWORD DeleteUserInfoCacheOffset;
-extern DWORD SearchContactByNetRemoteOffset;
+#define GetFriendListInit "GetFriendListInit"
+#define GetFriendListRemote "GetFriendListRemote"
+#define GetFriendListFinish "GetFriendListFinish"
 
-extern DWORD VerifyFriendApplyOffset;
+#define EditRemarkRemote "EditRemarkRemote"
+#define GetWxUserInfoRemote "GetWxUserInfoRemote"
+#define DeleteUserInfoCacheRemote "DeleteUserInfoCacheRemote"
 
-extern DWORD GetSelfInfoOffset;
-extern DWORD DeleteSelfInfoCacheOffset;
-extern wstring SelfInfoString;
-extern DWORD isWxLoginOffset;
+#define GetSelfInfoRemote "GetSelfInfoRemote"
+#define DeleteSelfInfoCacheRemote "DeleteSelfInfoCacheRemote"
+#define SearchContactByNetRemote "SearchContactByNetRemote"
+#define isWxLoginRemote "isWxLogin"
 
-extern DWORD CheckFriendStatusRemoteOffset;
+#define VerifyFriendApplyRemote "VerifyFriendApplyRemote"
 
-extern DWORD HookReceiveMessageRemoteOffset;
-extern DWORD UnHookReceiveMessageRemoteOffset;
+#define CheckFriendStatusRemote "CheckFriendStatusRemote"
 
-extern DWORD GetChatRoomMembersRemoteOffset;
+#define HookReceiveMessageRemote "HookReceiveMessage"
+#define UnHookReceiveMessageRemote "UnHookReceiveMessage"
 
-extern DWORD GetDbHandlesRemoteOffset;
-extern DWORD ExecuteSQLRemoteOffset;
-extern DWORD SelectDataRemoteOffset;
-extern DWORD BackupSQLiteDBRemoteOffset;
+#define GetChatRoomMemberNicknameRemote "GetChatRoomMemberNicknameRemote"
+#define GetChatRoomMembersRemote "GetChatRoomMembersRemote"
+#define DelChatRoomMemberRemote "DelChatRoomMemberRemote"
+#define AddChatRoomMemberRemote "AddChatRoomMemberRemote"
+#define SetChatRoomAnnouncementRemote "SetChatRoomAnnouncementRemote"
+#define SetChatRoomNameRemote "SetChatRoomNameRemote"
+#define SetChatRoomSelfNicknameRemote "SetChatRoomSelfNicknameRemote"
 
-extern DWORD AddFriendByWxidRemoteOffset;
-extern DWORD AddFriendByV3RemoteOffset;
-extern DWORD DeleteUserRemoteOffset;
-extern DWORD AddBrandContactRemoteOffset;
+#define GetDbHandlesRemote "GetDbHandlesRemote"
+#define ExecuteSQLRemote "ExecuteSQLRemote"
+#define SelectDataRemote "SelectDataRemote"
+#define BackupSQLiteDBRemote "BackupSQLiteDBRemote"
 
-extern DWORD HookImageMsgRemoteOffset;
-extern DWORD UnHookImageMsgRemoteOffset;
-extern DWORD HookVoiceMsgRemoteOffset;
-extern DWORD UnHookVoiceMsgRemoteOffset;
+#define AddFriendByWxidRemote "AddFriendByWxidRemote"
+#define AddFriendByV3Remote "AddFriendByV3Remote"
+#define DeleteUserRemote "DeleteUserRemote"
+#define AddBrandContactRemote "AddBrandContactRemote"
 
-extern DWORD ChangeWeChatVerRemoteOffset;
+#define HookImageMsgRemote "HookImageMsgRemote"
+#define UnHookImageMsgRemote "UnHookImageMsg"
+#define HookVoiceMsgRemote "HookVoiceMsgRemote"
+#define UnHookVoiceMsgRemote "UnHookVoiceMsg"
 
-
-#define dllname							L"DWeChatRobot.dll"
-
-#define SendTextRemote					"SendTextRemote"
-#define SendImageRemote					"SendImageRemote"
-#define SendFileRemote					"SendFileRemote"
-#define SendArticleRemote				"SendArticleRemote"
-#define SendCardRemote					"SendCardRemote"
-#define SendAtTextRemote				"SendAtTextRemote"
-#define SendAppMsgRemote				"SendAppMsgRemote"
-
-#define GetFriendListInit				"GetFriendListInit"
-#define GetFriendListRemote				"GetFriendListRemote"
-#define GetFriendListFinish				"GetFriendListFinish"
-
-#define GetWxUserInfoRemote				"GetWxUserInfoRemote"
-#define DeleteUserInfoCacheRemote		"DeleteUserInfoCacheRemote"
-
-#define GetSelfInfoRemote				"GetSelfInfoRemote"
-#define DeleteSelfInfoCacheRemote		"DeleteSelfInfoCacheRemote"
-#define SearchContactByNetRemote		"SearchContactByNetRemote"
-#define isWxLoginRemote					"isWxLogin"
-
-#define VerifyFriendApplyRemote			"VerifyFriendApplyRemote"
-
-#define CheckFriendStatusRemote			"CheckFriendStatusRemote"
-
-#define HookReceiveMessageRemote		"HookReceiveMessage"
-#define UnHookReceiveMessageRemote		"UnHookReceiveMessage"
-
-#define GetChatRoomMembersRemote		"GetChatRoomMembersRemote"
-
-#define GetDbHandlesRemote				"GetDbHandlesRemote"
-#define ExecuteSQLRemote				"ExecuteSQLRemote"
-#define SelectDataRemote				"SelectDataRemote"
-#define BackupSQLiteDBRemote			"BackupSQLiteDBRemote"
-
-#define AddFriendByWxidRemote			"AddFriendByWxidRemote"
-#define AddFriendByV3Remote				"AddFriendByV3Remote"
-#define DeleteUserRemote				"DeleteUserRemote"
-#define AddBrandContactRemote			"AddBrandContactRemote"
-
-#define HookImageMsgRemote				"HookImageMsgRemote"
-#define UnHookImageMsgRemote			"UnHookImageMsg"
-#define HookVoiceMsgRemote				"HookVoiceMsgRemote"
-#define UnHookVoiceMsgRemote			"UnHookVoiceMsg"
-
-#define ChangeWeChatVerRemote			"ChangeWeChatVerRemote"
+#define ChangeWeChatVerRemote "ChangeWeChatVerRemote"

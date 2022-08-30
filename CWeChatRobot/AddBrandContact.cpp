@@ -1,25 +1,14 @@
 #include "pch.h"
 
-BOOL AddBrandContact(wchar_t* PublicId) {
-    if (!hProcess)
+BOOL AddBrandContact(DWORD pid,wchar_t* PublicId) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD AddBrandContactAddr = hp.GetProcAddr(AddBrandContactRemote);
+    if (AddBrandContactAddr == 0)
         return 1;
-    DWORD WeChatRobotBase = GetWeChatRobotBase();
-    DWORD dwId = 0;
-    DWORD dwWriteSize = 0;
-    DWORD dwRet = 1;
-
-    LPVOID PublicIdaddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-    if (!PublicIdaddr)
+    WeChatData<wchar_t*> r_publicid(hp.GetHandle(), PublicId, TEXTLENGTH(PublicId));
+    if (r_publicid.GetAddr() == 0)
         return 1;
-    WriteProcessMemory(hProcess, PublicIdaddr, PublicId, wcslen(PublicId) * 2 + 2, &dwWriteSize);
-    DWORD AddBrandContactAddr = WeChatRobotBase + AddBrandContactRemoteOffset;
-    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)AddBrandContactAddr, (LPVOID)PublicIdaddr, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-        GetExitCodeThread(hThread, &dwRet);
-        CloseHandle(hThread);
-    }
-
-    VirtualFreeEx(hProcess, PublicIdaddr, 0, MEM_RELEASE);
-    return dwRet == 0;
+    DWORD ret = CallRemoteFunction(hp.GetHandle(), AddBrandContactAddr, r_publicid.GetAddr());
+    return ret == 0;
 }

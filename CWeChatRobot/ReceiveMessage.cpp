@@ -1,43 +1,21 @@
 #include "pch.h"
 
-BOOL ReceiveMessageHooked = FALSE;
-
-BOOL StartReceiveMessage(int port) {
-    if (!hProcess || ReceiveMessageHooked)
+BOOL StartReceiveMessage(DWORD pid,int port) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD StartReceiveMessageRemoteAddr = hp.GetProcAddr(HookReceiveMessageRemote);
+    if (StartReceiveMessageRemoteAddr == 0)
         return 1;
-    DWORD WeChatRobotBase = GetWeChatRobotBase();
-    DWORD dwId = 0;
-
-    DWORD HookReceiveMessageAddr = WeChatRobotBase + HookReceiveMessageRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)HookReceiveMessageAddr, (LPVOID)port, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-    }
-    else {
-        return 1;
-    }
-    CloseHandle(hThread);
-    ReceiveMessageHooked = TRUE;
+    CallRemoteFunction(hp.GetHandle(), StartReceiveMessageRemoteAddr, port);
     return 0;
 }
 
-BOOL StopReceiveMessage() {
-    if (!hProcess || !ReceiveMessageHooked) {
-        ReceiveMessageHooked = FALSE;
+BOOL StopReceiveMessage(DWORD pid) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD UnHookReceiveMsgRemoteAddr = hp.GetProcAddr(UnHookReceiveMessageRemote);
+    if (UnHookReceiveMsgRemoteAddr == 0)
         return 1;
-    }
-    DWORD WeChatRobotBase = GetWeChatRobotBase();
-    DWORD dwId = 0;
-
-    DWORD UnHookReceiveMessageAddr = WeChatRobotBase + UnHookReceiveMessageRemoteOffset;
-    HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)UnHookReceiveMessageAddr, NULL, 0, &dwId);
-    if (hThread) {
-        WaitForSingleObject(hThread, INFINITE);
-    }
-    else {
-        return 1;
-    }
-    CloseHandle(hThread);
-    ReceiveMessageHooked = FALSE;
+    CallRemoteFunction(hp.GetHandle(), UnHookReceiveMsgRemoteAddr, NULL);
     return 0;
 }

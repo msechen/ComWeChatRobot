@@ -109,7 +109,7 @@ static SAFEARRAY* CreateUserInfoArray() {
 	return psaValue;
 }
 
-static void ReadUserInfoFromMemory() {
+static void ReadUserInfoFromMemory(HANDLE hProcess) {
 	userinfo.keyword = new wchar_t[userinfoaddr.l_keyword + 1];
 	ReadProcessMemory(hProcess, (LPCVOID)userinfoaddr.keyword, userinfo.keyword, (userinfoaddr.l_keyword + 1) * sizeof(wchar_t), 0);
 	userinfo.v3 = new wchar_t[userinfoaddr.l_v3 + 1];
@@ -133,30 +133,23 @@ static void ReadUserInfoFromMemory() {
 	userinfo.sex = userinfoaddr.sex;
 }
 
-SAFEARRAY* SearchContactByNet(wchar_t* keyword) {
-	if (!hProcess)
+SAFEARRAY* SearchContactByNet(DWORD pid,wchar_t* keyword) {
+	DWORD dwReadSize = 0;
+	WeChatProcess hp(pid);
+	if (!hp.m_init) return NULL;
+	DWORD SearchContactByNetRemoteAddr = hp.GetProcAddr(SearchContactByNetRemote);
+	if (SearchContactByNetRemoteAddr == 0)
+		return NULL;
+	WeChatData<wchar_t*> r_keyword(hp.GetHandle(), keyword, TEXTLENGTH(keyword));
+	if (r_keyword.GetAddr() == 0)
 		return NULL;
 	ClearUserInfoCache();
-	DWORD SearchContactByNetRemoteAddr = GetWeChatRobotBase() + SearchContactByNetRemoteOffset;
-	LPVOID keywordaddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-	DWORD dwWriteSize = 0;
-	DWORD dwId = 0;
-	DWORD dwHandle = 0;
-	if (!keywordaddr)
+	DWORD ret = CallRemoteFunction(hp.GetHandle(), SearchContactByNetRemoteAddr, r_keyword.GetAddr());
+	if (ret == 0)
 		return NULL;
-	WriteProcessMemory(hProcess, keywordaddr, keyword, wcslen(keyword) * 2 + 2, &dwWriteSize);
-	HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)SearchContactByNetRemoteAddr, keywordaddr, 0, &dwId);
-	if (hThread) {
-		WaitForSingleObject(hThread, INFINITE);
-		GetExitCodeThread(hThread, &dwHandle);
-		CloseHandle(hThread);
-	}
-	VirtualFreeEx(hProcess, keywordaddr, 0, MEM_RELEASE);
-	if (!dwHandle)
-		return NULL;
-	ReadProcessMemory(hProcess, (LPCVOID)dwHandle, &userinfoaddr, sizeof(UserInfoAddr), &dwWriteSize);
+	ReadProcessMemory(hp.GetHandle(), (LPCVOID)ret, &userinfoaddr, sizeof(UserInfoAddr), &dwReadSize);
 	if (userinfoaddr.errcode == 0) {
-		ReadUserInfoFromMemory();
+		ReadUserInfoFromMemory(hp.GetHandle());
 		SAFEARRAY* psa = CreateUserInfoArray();
 		return psa;
 	}

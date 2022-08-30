@@ -5,38 +5,20 @@ struct VerifyFriendApplyStruct {
 	DWORD v4;
 };
 
-BOOL VerifyFriendApply(wchar_t* v3,wchar_t* v4) {
-	if (!hProcess)
-		return 0;
-	DWORD VerifyFriendApplyProcAddr = GetWeChatRobotBase() + VerifyFriendApplyOffset;
-	LPVOID v3addr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-	LPVOID v4addr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-	DWORD dwWriteSize = 0;
-	DWORD dwId = 0;
-	DWORD dwHandle = 0;
-	VerifyFriendApplyStruct apply_data = { 0 };
-	if (!v3addr || !v4addr)
-		return 0;
-	WriteProcessMemory(hProcess, v3addr, v3, wcslen(v3) * 2 + 2, &dwWriteSize);
-	WriteProcessMemory(hProcess, v4addr, v4, wcslen(v4) * 2 + 2, &dwWriteSize);
-	VerifyFriendApplyStruct* paramAndFunc = (VerifyFriendApplyStruct*)::VirtualAllocEx(hProcess, 0, sizeof(VerifyFriendApplyStruct), MEM_COMMIT, PAGE_READWRITE);
-	apply_data.v3 = (DWORD)v3addr;
-	apply_data.v4 = (DWORD)v4addr;
-
-	if (paramAndFunc)
-		WriteProcessMemory(hProcess, paramAndFunc, &apply_data, sizeof(apply_data), &dwId);
-	else
-		return 1;
-
-	HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)VerifyFriendApplyProcAddr, paramAndFunc, 0, &dwId);
-	if (hThread) {
-		WaitForSingleObject(hThread, INFINITE);
-		GetExitCodeThread(hThread, &dwHandle);
-		CloseHandle(hThread);
-	}
-
-	VirtualFreeEx(hProcess, v3addr, 0, MEM_RELEASE);
-	VirtualFreeEx(hProcess, v4addr, 0, MEM_RELEASE);
-	VirtualFreeEx(hProcess, paramAndFunc, 0, MEM_RELEASE);
-	return dwHandle;
+BOOL VerifyFriendApply(DWORD pid,wchar_t* v3,wchar_t* v4) {
+    WeChatProcess hp(pid);
+    if (!hp.m_init) return 1;
+    DWORD VerifyFriendApplyRemoteAddr = hp.GetProcAddr(VerifyFriendApplyRemote);
+    if (VerifyFriendApplyRemoteAddr == 0)
+        return 1;
+    WeChatData<wchar_t*> r_v3(hp.GetHandle(), v3, TEXTLENGTH(v3));
+    WeChatData<wchar_t*> r_v4(hp.GetHandle(), v4, TEXTLENGTH(v4));
+    VerifyFriendApplyStruct params = { 0 };
+    params.v3 = (DWORD)r_v3.GetAddr();
+    params.v4 = (DWORD)r_v4.GetAddr();
+    WeChatData<VerifyFriendApplyStruct*> r_params(hp.GetHandle(), &params, sizeof(params));
+    if (r_v3.GetAddr() == 0 || r_v4.GetAddr() == 0 || r_params.GetAddr() == 0)
+        return 1;
+    DWORD ret = CallRemoteFunction(hp.GetHandle(), VerifyFriendApplyRemoteAddr, r_params.GetAddr());
+    return ret == 0;
 }

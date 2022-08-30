@@ -1,20 +1,27 @@
-/Debug
+build/
+Debug/
+!/Release
+Release/
+SOCKET_Debug/
+SOCKET_Release/
+Win32/
+x64/
+*.rar
+obj/
+packages/
+
+mongoose.c
+mongoose.h
+json.hpp
+
+# py
+__pycache__/
+# Visual Studio
+.vs
 *.exp
 *.pdb
 *.lib
-*/Debug/
-*/Release/
-*/SOCKET_Debug/
-*/SOCKET_Release/
-*/Win32/
-*/x64/
-*.rar
-/.vs/
-/x64
-*/obj/
-/wxRobot/bin/Debug/
-/wxRobot/bin/Release/*.pdb
-*/__pycache__/
-packages
-mongoose.c
-mongoose.h
+# VSCode
+.vscode
+# JetBrians IDE
+.idea

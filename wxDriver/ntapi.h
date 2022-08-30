@@ -1,6 +1,17 @@
 #pragma once
 #include<windows.h>
 
+#ifndef _WIN64
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
+typedef NTSTATUS* PNTSTATUS;
+#endif // !_WIN64
+
+#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
+#define SystemHandleInformation 16
+#define ObjectBasicInformation 0
+#define ObjectNameInformation 1
+#define ObjectTypeInformation 2
+
 /*
 * 函数指针、数据结构以及宏参考如下仓库
 * https://github.com/winsiderss/systeminformer
@@ -110,6 +121,58 @@ typedef struct _SECTION_IMAGE_INFORMATION
     ULONG CheckSum;
 } SECTION_IMAGE_INFORMATION, * PSECTION_IMAGE_INFORMATION;
 
+typedef struct _SYSTEM_HANDLE
+{
+    ULONG ProcessId;
+    BYTE ObjectTypeNumber;
+    BYTE Flags;
+    USHORT Handle;
+    PVOID Object;
+    ACCESS_MASK GrantedAccess;
+} SYSTEM_HANDLE, * PSYSTEM_HANDLE;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION
+{
+    ULONG HandleCount;
+    SYSTEM_HANDLE Handles[1];
+} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
+
+typedef enum _POOL_TYPE
+{
+    NonPagedPool,
+    PagedPool,
+    NonPagedPoolMustSucceed,
+    DontUseThisType,
+    NonPagedPoolCacheAligned,
+    PagedPoolCacheAligned,
+    NonPagedPoolCacheAlignedMustS
+} POOL_TYPE, * PPOOL_TYPE;
+
+typedef struct _OBJECT_TYPE_INFORMATION
+{
+    UNICODE_STRING Name;
+    ULONG TotalNumberOfObjects;
+    ULONG TotalNumberOfHandles;
+    ULONG TotalPagedPoolUsage;
+    ULONG TotalNonPagedPoolUsage;
+    ULONG TotalNamePoolUsage;
+    ULONG TotalHandleTableUsage;
+    ULONG HighWaterNumberOfObjects;
+    ULONG HighWaterNumberOfHandles;
+    ULONG HighWaterPagedPoolUsage;
+    ULONG HighWaterNonPagedPoolUsage;
+    ULONG HighWaterNamePoolUsage;
+    ULONG HighWaterHandleTableUsage;
+    ULONG InvalidAttributes;
+    GENERIC_MAPPING GenericMapping;
+    ULONG ValidAccess;
+    BOOLEAN SecurityRequired;
+    BOOLEAN MaintainHandleCount;
+    USHORT MaintainTypeList;
+    POOL_TYPE PoolType;
+    ULONG PagedPoolUsage;
+    ULONG NonPagedPoolUsage;
+} OBJECT_TYPE_INFORMATION, * POBJECT_TYPE_INFORMATION;
 
 typedef
 NTSYSCALLAPI
@@ -184,4 +247,41 @@ NTSTATUS
 (NTAPI*
 pNtClose)(
     _In_ _Post_ptr_invalid_ HANDLE Handle
+);
+
+typedef
+NTSYSCALLAPI
+NTSTATUS
+(NTAPI* 
+pNtQuerySystemInformation)(
+    ULONG SystemInformationClass,
+    PVOID SystemInformation,
+    ULONG SystemInformationLength,
+    PULONG ReturnLength
+);
+
+typedef
+NTSYSCALLAPI
+NTSTATUS
+(NTAPI* 
+pNtDuplicateObject)(
+    HANDLE SourceProcessHandle,
+    HANDLE SourceHandle,
+    HANDLE TargetProcessHandle,
+    PHANDLE TargetHandle,
+    ACCESS_MASK DesiredAccess,
+    ULONG Attributes,
+    ULONG Options
+);
+
+typedef
+NTSYSCALLAPI
+NTSTATUS
+(NTAPI* 
+pNtQueryObject)(
+    HANDLE ObjectHandle,
+    ULONG ObjectInformationClass,
+    PVOID ObjectInformation,
+    ULONG ObjectInformationLength,
+    PULONG ReturnLength
 );

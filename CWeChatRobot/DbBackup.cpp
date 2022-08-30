@@ -6,37 +6,20 @@ struct BackupParams {
 	DWORD savepath;
 };
 
-BOOL BackupSQLiteDB(DWORD DbHandle, BSTR savepath) {
-	if (!hProcess)
-		return 1;
-	DWORD dwHandle = 0x0;
-	DWORD dwId = 0x0;
-	DWORD dwWriteSize = 0x0;
-	LPVOID savepathAddr = VirtualAllocEx(hProcess, NULL, 1, MEM_COMMIT, PAGE_READWRITE);
-	BackupParams* paramAndFunc = (BackupParams*)::VirtualAllocEx(hProcess, 0, sizeof(BackupParams), MEM_COMMIT, PAGE_READWRITE);
-	if (!savepathAddr || !paramAndFunc)
+BOOL BackupSQLiteDB(DWORD pid,DWORD DbHandle, BSTR savepath) {
+	WeChatProcess hp(pid);
+	if (!hp.m_init) return 1;
+	DWORD BackupSQLiteDBRemoteAddr = hp.GetProcAddr(BackupSQLiteDBRemote);
+	if (BackupSQLiteDBRemoteAddr == 0)
 		return 1;
 	char* a_savepath = _com_util::ConvertBSTRToString(savepath);
-	if (savepathAddr) 
-		WriteProcessMemory(hProcess, savepathAddr, a_savepath, strlen(a_savepath) + 1, &dwWriteSize);
-	BackupParams param = { 0 };
-	param.ptrDb = DbHandle;
-	param.savepath = (DWORD)savepathAddr;
-
-	if (paramAndFunc)
-		WriteProcessMemory(hProcess, paramAndFunc, &param, sizeof(BackupParams), &dwWriteSize);
-
-	DWORD BackupSQLiteDBRemoteAddr = GetWeChatRobotBase() + BackupSQLiteDBRemoteOffset;
-	HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)BackupSQLiteDBRemoteAddr, (LPVOID)paramAndFunc, 0, &dwId);
-	if (hThread) {
-		WaitForSingleObject(hThread, INFINITE);
-		GetExitCodeThread(hThread, &dwHandle);
-		CloseHandle(hThread);
-	}
-	else {
+	WeChatData<char*> r_savepath(hp.GetHandle(), a_savepath, TEXTLENGTHA(a_savepath));
+	BackupParams params = { 0 };
+	params.ptrDb = DbHandle;
+	params.savepath = (DWORD)r_savepath.GetAddr();
+	WeChatData<BackupParams*> r_params(hp.GetHandle(), &params, sizeof(params));
+	if (r_savepath.GetAddr() == 0 || r_params.GetAddr() == 0)
 		return 1;
-	}
-	VirtualFreeEx(hProcess, savepathAddr, 0, MEM_RELEASE);
-	VirtualFreeEx(hProcess, paramAndFunc, 0, MEM_RELEASE);
-	return dwHandle;
+	DWORD ret = CallRemoteFunction(hp.GetHandle(), BackupSQLiteDBRemoteAddr, r_params.GetAddr());
+	return ret == 0;
 }
