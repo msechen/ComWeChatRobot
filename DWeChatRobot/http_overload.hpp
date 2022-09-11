@@ -128,4 +128,14 @@ BOOL __stdcall BackupSQLiteDB(DWORD DbHandle, wstring BackupFile)
     string filepath = unicode_to_utf8(WS2LW(BackupFile));
     return BackupSQLiteDB(DbHandle, filepath.c_str()) == SQLITE_OK;
 }
+
+BOOL __stdcall OpenBrowser(wstring url)
+{
+    return OpenBrowser(WS2LW(url));
+}
+
+BOOL __stdcall ForwardMessage(wstring wxid, int localId)
+{
+    return ForwardMessage(WS2LW(wxid), localId);
+}
 #endif

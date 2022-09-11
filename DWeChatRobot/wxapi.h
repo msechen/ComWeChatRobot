@@ -28,6 +28,9 @@
 #include "SetChatRoomSelfNickname.h"
 #include "SetChatRoomName.h"
 #include "GetChatRoomMemberNickname.h"
+#include "OpenBrowser.h"
+#include "GetHistoryPublicMsg.h"
+#include "ForwardMessage.h"
 
 using namespace std;
 #pragma comment(lib, "version.lib")

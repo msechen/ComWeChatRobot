@@ -229,13 +229,16 @@
     <ClInclude Include="DelChatRoomMember.h" />
     <ClInclude Include="DeleteUser.h" />
     <ClInclude Include="EditRemark.h" />
+    <ClInclude Include="ForwardMessage.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="FriendList.h" />
     <ClInclude Include="GetChatRoomMemberNickname.h" />
     <ClInclude Include="GetChatRoomMembers.h" />
     <ClInclude Include="GetDbHandles.h" />
+    <ClInclude Include="GetHistoryPublicMsg.h" />
     <ClInclude Include="InjectDll.h" />
     <ClInclude Include="ntapi.h" />
+    <ClInclude Include="OpenBrowser.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ReceiveMessage.h" />
     <ClInclude Include="Resource.h" />
@@ -274,14 +277,17 @@
     <ClCompile Include="DelChatRoomMember.cpp" />
     <ClCompile Include="DeleteUser.cpp" />
     <ClCompile Include="EditRemark.cpp" />
+    <ClCompile Include="ForwardMessage.cpp" />
     <ClCompile Include="FriendList.cpp" />
     <ClCompile Include="GetChatRoomMemberNickname.cpp" />
     <ClCompile Include="GetChatRoomMembers.cpp" />
     <ClCompile Include="GetDbHandles.cpp" />
+    <ClCompile Include="GetHistoryPublicMsg.cpp" />
     <ClCompile Include="HookImageMessage.cpp" />
     <ClCompile Include="HookVoiceMessage.cpp" />
     <ClCompile Include="InjectDll.cpp" />
     <ClCompile Include="ntapi.cpp" />
+    <ClCompile Include="OpenBrowser.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
